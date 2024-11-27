@@ -6,12 +6,12 @@ Set up a Kubernetes cluster using kubeadm.
 
 AWS Account
 Ubuntu OS
-sudo privileges
+make sure sudo privileges is accessed 
 
 #### Master & Worker Node:
 Run the following commands on both the master and worker nodes to prepare them for kubeadm.
 
-----
+````
 
  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 
@@ -28,10 +28,15 @@ Run the following commands on both the master and worker nodes to prepare them f
 
  kubectl version --client
 
+````
+
 #### disable swap
+````
 sudo swapoff -a
+````
 
 #### Create the .conf file to load the modules at bootup
+````
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 overlay
 br_netfilter
@@ -39,18 +44,25 @@ EOF
 
 sudo modprobe overlay
 sudo modprobe br_netfilter
+````
 
 #### sysctl params required by setup, params persist across reboots
+
+````
 cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-iptables  = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv4.ip_forward                 = 1
 EOF
+````
 
 #### Apply sysctl params without reboot
+````
 sudo sysctl --system
+````
 
 #### Install CRIO Runtime
+````
 sudo apt-get update -y
 sudo apt-get install -y software-properties-common curl apt-transport-https ca-certificates gpg
 
@@ -65,8 +77,10 @@ sudo systemctl enable crio --now
 sudo systemctl start crio.service
 
 echo "CRI runtime installed successfully"
+````
 
 #### Add Kubernetes APT repository and install required packages
+````
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
@@ -78,12 +92,12 @@ sudo apt-get install -y jq
 sudo systemctl enable --now kubelet
 sudo systemctl start kubelet
 
-----
+````
 
 Use this commands on Master Node (Only):
 a) Initialize the Kubernetes master node.
 
-----
+````
  sudo kubeadm config images pull
 
  sudo kubeadm init
@@ -91,20 +105,24 @@ a) Initialize the Kubernetes master node.
  mkdir -p "$HOME"/.kube
  sudo cp -i /etc/kubernetes/admin.conf "$HOME"/.kube/config
  sudo chown "$(id -u)":"$(id -g)" "$HOME"/.kube/config
+````
 
 #### Network Plugin = calico
+
+````
  kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.0/manifests/calico.yaml
 
- ----
+````
+
 
 If succesfully running, your Kubernetes control plane is now initialized successfully.
 
 
 b) Generate a token for worker nodes to join:
 
-----
+````
  kubeadm token create --print-join-command
-----
+````
 
 c) Here make sure port 6443 in Security group is used for Worker node to connect to Master Node
 
@@ -112,15 +130,15 @@ Use this command on Worker Node (Only):
 
 a) Run the following commands on the worker node.
 
-----
+````
 sudo kubeadm reset pre-flight checks
-----
+````
 
 b) Paste the join command you got from the master node and append --v=5 at the end. Make sure either you are working as sudo user or usesudo before the command
 
 Verify if it is working as expected!
 
-----
+````
 kubectl get nodes
-----
+````
 
